@@ -8,9 +8,13 @@ export type ProvisioningEnv = {
   ADMIN_INITIAL_PASSWORD?: string;
 };
 
-export async function provisionAdmin(env: ProvisioningEnv = process.env) {
-  const email = env.ADMIN_EMAIL?.trim().toLowerCase();
-  const password = env.ADMIN_INITIAL_PASSWORD;
+export async function provisionAdmin(env?: ProvisioningEnv) {
+  const source: ProvisioningEnv = env ?? {
+    ADMIN_EMAIL: process.env.ADMIN_EMAIL,
+    ADMIN_INITIAL_PASSWORD: process.env.ADMIN_INITIAL_PASSWORD,
+  };
+  const email = source.ADMIN_EMAIL?.trim().toLowerCase();
+  const password = source.ADMIN_INITIAL_PASSWORD;
 
   if (!email || !password) {
     throw new Error("ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD are required");
