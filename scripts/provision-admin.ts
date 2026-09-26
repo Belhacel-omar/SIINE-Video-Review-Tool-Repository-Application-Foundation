@@ -1,6 +1,6 @@
-import { provisionAdmin } from "../lib/auth/provision-admin";
+import { runProvisionAdminCli } from "../lib/auth/provision-admin-cli";
 
-provisionAdmin().catch((error) => {
+runProvisionAdminCli().catch((error) => {
   console.error(error instanceof Error ? error.message : "Provisioning failed");
-  process.exit(1);
+  process.exitCode = 1;
 });
