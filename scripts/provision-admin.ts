@@ -1,3 +1,6 @@
-import { eq } from "drizzle-orm"; import { getDb } from "../lib/db"; import { users } from "../lib/db/schema"; import { hashPassword, validatePassword } from "../lib/auth/password";
-async function main(){ const email=process.env.ADMIN_EMAIL?.trim().toLowerCase(); const password=process.env.ADMIN_INITIAL_PASSWORD; if(!email||!password)throw new Error("ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD are required"); if(!validatePassword(password))throw new Error("Initial password does not meet policy"); const db=getDb(); const existing=await db.select({id:users.id}).from(users).where(eq(users.email,email)).limit(1); if(existing[0]){ console.log("Administrator already provisioned; no password change performed."); return; } await db.insert(users).values({email,passwordHash:await hashPassword(password)}); console.log("Administrator provisioned."); }
-main().catch(e=>{ console.error(e instanceof Error?e.message:"Provisioning failed"); process.exit(1); });
+import { provisionAdmin } from "../lib/auth/provision-admin";
+
+provisionAdmin().catch((error) => {
+  console.error(error instanceof Error ? error.message : "Provisioning failed");
+  process.exit(1);
+});
