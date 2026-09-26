@@ -406,7 +406,7 @@ export async function parseXlsxUpload(file: UploadedXlsx): Promise<ParsedCourseI
   let workbook: ExcelJS.Workbook;
   try {
     workbook = new ExcelJS.Workbook();
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await file.arrayBuffer();
     await workbook.xlsx.load(buffer);
   } catch {
     throw new ApiError(
