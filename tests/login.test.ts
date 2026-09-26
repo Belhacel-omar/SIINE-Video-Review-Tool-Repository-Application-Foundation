@@ -7,7 +7,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/db", () => ({ getDb: mocks.getDb }));
-vi.mock("@/lib/auth/password", () => ({\n  verifyPassword: mocks.verifyPassword,\n  MIN_PASSWORD_LENGTH: 12,\n}));
+vi.mock("@/lib/auth/password", () => ({
+  verifyPassword: mocks.verifyPassword,
+  MIN_PASSWORD_LENGTH: 12,
+}));
 vi.mock("@/lib/auth/session", () => ({ createSession: mocks.createSession }));
 
 import { POST } from "@/app/api/auth/login/route";
