@@ -3,6 +3,7 @@ import {
   asc,
   desc,
   eq,
+  isNotNull,
   sql,
 } from "drizzle-orm";
 import { ApiError } from "@/lib/api/errors";
@@ -61,6 +62,7 @@ export async function listCourses(userId: string) {
       and(
         eq(reviews.videoId, videos.id),
         eq(reviews.reviewerId, userId),
+        isNotNull(reviews.reviewedAt),
       ),
     )
     .where(eq(courses.createdBy, userId))
