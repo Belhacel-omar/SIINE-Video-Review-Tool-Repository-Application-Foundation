@@ -128,7 +128,7 @@ describe("playlist and video detail routes", () => {
     expect(mocks.getVideo).not.toHaveBeenCalled();
   });
 
-  it("returns an owned video detail without source_data", async () => {
+  it("returns an owned video detail with the persisted review and without source_data", async () => {
     mocks.getVideo.mockResolvedValue({
       id: VIDEO_ID,
       courseId: COURSE_ID,
@@ -137,7 +137,11 @@ describe("playlist and video detail routes", () => {
       title: "First",
       bunnyUrl: "https://video.example.com/first",
       playlistOrder: 0,
-      review: null,
+      review: {
+        note: "persisted note",
+        wasPlayed: true,
+        reviewedAt: "2026-09-28T03:00:00.000Z",
+      },
     });
 
     const response = await videoDetailRoute(
@@ -148,6 +152,11 @@ describe("playlist and video detail routes", () => {
 
     expect(mocks.getVideo).toHaveBeenCalledWith(USER_ID, VIDEO_ID);
     expect(body.video.id).toBe(VIDEO_ID);
+    expect(body.video.review).toEqual({
+      note: "persisted note",
+      wasPlayed: true,
+      reviewedAt: "2026-09-28T03:00:00.000Z",
+    });
     expect(JSON.stringify(body)).not.toContain("sourceData");
   });
 

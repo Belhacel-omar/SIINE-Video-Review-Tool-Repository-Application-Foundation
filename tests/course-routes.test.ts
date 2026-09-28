@@ -149,6 +149,28 @@ describe("course routes", () => {
     });
   });
 
+  it("surfaces reviewed progress from the course service contract", async () => {
+    mocks.listCourses.mockResolvedValue([
+      {
+        id: COURSE_ID,
+        title: "Mine",
+        originalFilename: "videos.xlsx",
+        videoCount: 3,
+        reviewedCount: 1,
+        createdAt: "2026-09-26T12:00:00.000Z",
+        updatedAt: "2026-09-28T03:00:00.000Z",
+      },
+    ]);
+
+    const first = await listCoursesRoute();
+    const second = await listCoursesRoute();
+
+    expect((await first.json()).courses[0].reviewedCount).toBe(1);
+    expect((await second.json()).courses[0].reviewedCount).toBe(1);
+    expect(mocks.listCourses).toHaveBeenNthCalledWith(1, USER_ID);
+    expect(mocks.listCourses).toHaveBeenNthCalledWith(2, USER_ID);
+  });
+
   it("loads course detail through the authenticated user's ownership scope", async () => {
     mocks.getCourse.mockResolvedValue({
       id: COURSE_ID,
