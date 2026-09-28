@@ -203,13 +203,20 @@ export default function CoursePage() {
           <h1>{course.title}</h1>
           <p className="muted">
             {imported
-              ? "Playlist imported and ready for the review workspace."
+              ? "Playlist imported and ready for review."
               : "Import the course XLSX playlist to continue."}
           </p>
         </div>
-        <span className={"status-badge " + (imported ? "success" : "neutral")}>
-          {imported ? "Imported" : "Not imported"}
-        </span>
+        <div className="course-heading-actions">
+          <span className={"status-badge " + (imported ? "success" : "neutral")}>
+            {imported ? "Imported" : "Not imported"}
+          </span>
+          {imported && rows.length > 0 ? (
+            <Link className="button primary" href={"/courses/" + course.id + "/review"}>
+              {reviewedCount > 0 ? "Continue Review" : "Start Review"}
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {!imported ? (
@@ -262,7 +269,7 @@ export default function CoursePage() {
             <div className="section-heading">
               <div>
                 <h2>Playlist preview</h2>
-                <p>Review editing is intentionally not part of Frontend Task 01.</p>
+                <p>Open the review workspace to watch videos and save review notes.</p>
               </div>
               <span className="count">{progress.percent}% reviewed</span>
             </div>
