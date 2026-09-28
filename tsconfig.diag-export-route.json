@@ -1,1 +1,0 @@
-{"extends":"./tsconfig.json","include":["next-env.d.ts","app/api/courses/[courseId]/export/route.ts"],"exclude":["node_modules","tests/**","vitest.config.ts"]}
