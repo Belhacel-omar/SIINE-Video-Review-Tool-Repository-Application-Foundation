@@ -24,21 +24,7 @@ function toExcelCellValue(value: unknown): ExcelJS.CellValue {
 }
 
 function toNodeBuffer(output: ExcelJsWriteOutput): Buffer {
-  if (Buffer.isBuffer(output)) return output;
-
-  if (output instanceof ArrayBuffer) {
-    return Buffer.from(output);
-  }
-
-  if (ArrayBuffer.isView(output)) {
-    return Buffer.from(
-      output.buffer,
-      output.byteOffset,
-      output.byteLength,
-    );
-  }
-
-  throw new Error("Unsupported XLSX output representation");
+  return Buffer.from(output as unknown as ArrayBuffer);
 }
 
 export function reviewedExportFilename(originalFilename: string | null) {
