@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.json","include":["next-env.d.ts","lib/export/xlsx.ts"],"exclude":["node_modules","tests/**","vitest.config.ts"]}
