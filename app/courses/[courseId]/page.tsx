@@ -31,10 +31,6 @@ export default function CoursePage() {
   const [importMessage, setImportMessage] = useState("");
 
   const loadCourse = useCallback(async () => {
-    setLoading(true);
-    setLoadError("");
-    setNotFound(false);
-
     try {
       const [courseData, videoData] = await Promise.all([
         requestJson<{ course: CourseDetail }>("/api/courses/" + courseId),
