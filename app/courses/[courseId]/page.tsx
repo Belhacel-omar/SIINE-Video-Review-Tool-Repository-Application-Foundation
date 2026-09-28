@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   friendlyError,
@@ -14,6 +14,13 @@ import {
   type CourseDetail,
   type CourseVideo,
 } from "@/lib/frontend/task01";
+
+async function fetchCourseBundle(courseId: string) {
+  return Promise.all([
+    requestJson<{ course: CourseDetail }>("/api/courses/" + courseId),
+    requestJson<{ videos: CourseVideo[] }>("/api/courses/" + courseId + "/videos"),
+  ]);
+}
 
 export default function CoursePage() {
   const params = useParams<{ courseId: string }>();
@@ -30,14 +37,50 @@ export default function CoursePage() {
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState("");
 
-  const loadCourse = useCallback(async () => {
+  useEffect(() => {
+    let active = true;
+
+    void fetchCourseBundle(courseId)
+      .then(([courseData, videoData]) => {
+        if (!active) return;
+        setLoadError("");
+        setNotFound(false);
+        setCourse(courseData.course);
+        setVideos(videoData.videos);
+      })
+      .catch((caught) => {
+        if (!active) return;
+        if (isUnauthorized(caught)) {
+          router.replace("/login");
+          return;
+        }
+        if (
+          typeof caught === "object" &&
+          caught !== null &&
+          "status" in caught &&
+          caught.status === 404
+        ) {
+          setNotFound(true);
+        } else {
+          setLoadError(friendlyError(caught, "course"));
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [courseId, router]);
+
+  async function refreshCourse() {
+    setLoading(true);
+    setLoadError("");
+    setNotFound(false);
+
     try {
-      const [courseData, videoData] = await Promise.all([
-        requestJson<{ course: CourseDetail }>("/api/courses/" + courseId),
-        requestJson<{ videos: CourseVideo[] }>("/api/courses/" + courseId + "/videos"),
-      ]);
-      setLoadError("");
-      setNotFound(false);
+      const [courseData, videoData] = await fetchCourseBundle(courseId);
       setCourse(courseData.course);
       setVideos(videoData.videos);
     } catch (caught) {
@@ -58,11 +101,7 @@ export default function CoursePage() {
     } finally {
       setLoading(false);
     }
-  }, [courseId, router]);
-
-  useEffect(() => {
-    void loadCourse();
-  }, [loadCourse]);
+  }
 
   const rows = useMemo(() => toPlaylistRows(videos), [videos]);
   const reviewedCount = rows.filter((row) => row.reviewed).length;
@@ -105,7 +144,7 @@ export default function CoursePage() {
         "Imported " + result.importedCount + " videos from " + result.originalFilename + ".",
       );
       setFile(null);
-      await loadCourse();
+      await refreshCourse();
     } catch (caught) {
       if (isUnauthorized(caught)) {
         router.replace("/login");
@@ -146,7 +185,7 @@ export default function CoursePage() {
         <section className="panel empty-state">
           <h1>Could not load course</h1>
           <p>{loadError || "The course could not be loaded."}</p>
-          <button className="button secondary" type="button" onClick={() => void loadCourse()}>
+          <button className="button secondary" type="button" onClick={() => void refreshCourse()}>
             Retry
           </button>
         </section>
