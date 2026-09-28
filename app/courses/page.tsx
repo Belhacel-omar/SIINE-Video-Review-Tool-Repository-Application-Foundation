@@ -28,7 +28,8 @@ export default function CoursesPage() {
     setLoadError("");
     try {
       const data = await requestJson<{ courses: CourseSummary[] }>("/api/courses");
-      setLoadError("");\n      setCourses(data.courses);
+      setLoadError("");
+      setCourses(data.courses);
     } catch (caught) {
       if (isUnauthorized(caught)) {
         router.replace("/login");
