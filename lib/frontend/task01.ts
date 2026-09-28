@@ -147,7 +147,7 @@ export function toPlaylistRows(videos: CourseVideo[]) {
   }));
 }
 
-export type ErrorContext = "login" | "session" | "courses" | "course" | "import";
+export type ErrorContext = "login" | "session" | "courses" | "course" | "import" | "review";
 
 export function friendlyError(error: unknown, context: ErrorContext) {
   if (!(error instanceof ApiRequestError)) {
@@ -162,6 +162,10 @@ export function friendlyError(error: unknown, context: ErrorContext) {
 
   if (error.status === 404 && context === "course") {
     return "Course not found.";
+  }
+
+  if (error.status === 404 && context === "review") {
+    return "This video is no longer available.";
   }
 
   if (context === "import") {
