@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import ExcelJS from "@ayocore/exceljs";
 import { ApiError } from "@/lib/api/errors";
 
@@ -28,6 +29,13 @@ export type ParsedCourseImport = {
   headers: string[];
   rows: ParsedVideoRow[];
 };
+
+type ExcelJsLoadInput = Parameters<ExcelJS.Workbook["xlsx"]["load"]>[0];
+
+function toExcelJsLoadInput(arrayBuffer: ArrayBuffer): ExcelJsLoadInput {
+  const nodeBuffer = Buffer.from(arrayBuffer);
+  return nodeBuffer as unknown as ExcelJsLoadInput;
+}
 
 const TITLE_ALIASES = new Set(
   [
@@ -406,8 +414,8 @@ export async function parseXlsxUpload(file: UploadedXlsx): Promise<ParsedCourseI
   let workbook: ExcelJS.Workbook;
   try {
     workbook = new ExcelJS.Workbook();
-    const buffer = await file.arrayBuffer();
-    await workbook.xlsx.load(buffer);
+    const arrayBuffer = await file.arrayBuffer();
+    await workbook.xlsx.load(toExcelJsLoadInput(arrayBuffer));
   } catch {
     throw new ApiError(
       422,

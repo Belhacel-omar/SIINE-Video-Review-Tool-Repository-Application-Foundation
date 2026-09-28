@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import ExcelJS from "@ayocore/exceljs";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/errors";
@@ -53,6 +54,45 @@ async function expectApiError(
 }
 
 describe("XLSX import parsing", () => {
+  it("parses an independently produced XLSX fixture through the production binary adapter", async () => {
+    const bytes = await readFile(
+      new URL("./fixtures/runtime-valid.xlsx", import.meta.url),
+    );
+    const fixture: UploadedXlsx = {
+      name: "runtime-valid.xlsx",
+      size: bytes.byteLength,
+      arrayBuffer: async () =>
+        bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        ) as ArrayBuffer,
+    };
+
+    const parsed = await parseXlsxUpload(fixture);
+
+    expect(parsed.worksheetName).toBe("Videos");
+    expect(parsed.headerRowNumber).toBe(1);
+    expect(parsed.headers).toEqual([
+      "Video Title",
+      "Bunny URL",
+      "Source Video ID",
+      "Teacher",
+      "Chapter",
+    ]);
+    expect(parsed.rows).toHaveLength(3);
+    expect(parsed.rows.map((row) => row.sourceVideoId)).toEqual([
+      "SRC-001",
+      "SRC-002",
+      "SRC-003",
+    ]);
+    expect(parsed.rows.map((row) => row.playlistOrder)).toEqual([0, 1, 2]);
+    expect(parsed.rows.map((row) => row.title)).toEqual([
+      "Intro Lesson",
+      "Duplicate Title",
+      "Duplicate Title",
+    ]);
+  });
+
   it("imports valid rows, preserves source row numbers/data, and uses zero-based playlist order", async () => {
     const file = await makeUpload([
       {
