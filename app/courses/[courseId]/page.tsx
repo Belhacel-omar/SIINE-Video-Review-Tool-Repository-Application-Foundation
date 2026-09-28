@@ -40,7 +40,7 @@ export default function CoursePage() {
         requestJson<{ course: CourseDetail }>("/api/courses/" + courseId),
         requestJson<{ videos: CourseVideo[] }>("/api/courses/" + courseId + "/videos"),
       ]);
-      setCourse(courseData.course);
+      setLoadError("");\n      setNotFound(false);\n      setCourse(courseData.course);
       setVideos(videoData.videos);
     } catch (caught) {
       if (isUnauthorized(caught)) {
