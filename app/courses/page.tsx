@@ -24,8 +24,6 @@ export default function CoursesPage() {
   const [creating, setCreating] = useState(false);
 
   const loadCourses = useCallback(async () => {
-    setLoading(true);
-    setLoadError("");
     try {
       const data = await requestJson<{ courses: CourseSummary[] }>("/api/courses");
       setLoadError("");
