@@ -28,7 +28,7 @@ export default function CoursesLayout({ children }: { children: ReactNode }) {
         router.replace("/login");
         return;
       }
-      setUser(session.user);
+      setError("");\n      setUser(session.user);
     } catch (caught) {
       if (isUnauthorized(caught)) {
         router.replace("/login");
