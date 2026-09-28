@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   friendlyError,
@@ -23,10 +23,38 @@ export default function CoursesPage() {
   const [formError, setFormError] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const loadCourses = useCallback(async () => {
+  useEffect(() => {
+    let active = true;
+
+    void requestJson<{ courses: CourseSummary[] }>("/api/courses")
+      .then((data) => {
+        if (!active) return;
+        setLoadError("");
+        setCourses(data.courses);
+      })
+      .catch((caught) => {
+        if (!active) return;
+        if (isUnauthorized(caught)) {
+          router.replace("/login");
+          return;
+        }
+        setLoadError(friendlyError(caught, "courses"));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  async function retryCourses() {
+    setLoading(true);
+    setLoadError("");
+
     try {
       const data = await requestJson<{ courses: CourseSummary[] }>("/api/courses");
-      setLoadError("");
       setCourses(data.courses);
     } catch (caught) {
       if (isUnauthorized(caught)) {
@@ -37,11 +65,7 @@ export default function CoursesPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
-
-  useEffect(() => {
-    void loadCourses();
-  }, [loadCourses]);
+  }
 
   async function createCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -124,7 +148,7 @@ export default function CoursesPage() {
         <section className="panel empty-state">
           <h2>Could not load courses</h2>
           <p>{loadError}</p>
-          <button className="button secondary" type="button" onClick={() => void loadCourses()}>
+          <button className="button secondary" type="button" onClick={() => void retryCourses()}>
             Retry
           </button>
         </section>
