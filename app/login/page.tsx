@@ -1,13 +1,26 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { passwordChangedNoticeFromSearch } from "@/lib/frontend/change-password";
 import {
   friendlyError,
   requestJson,
   type SessionResponse,
 } from "@/lib/frontend/task01";
+
+function PasswordChangedNotice() {
+  const searchParams = useSearchParams();
+  const notice = passwordChangedNoticeFromSearch(searchParams.toString());
+
+  if (!notice) return null;
+
+  return (
+    <p className="alert success-alert" role="status">
+      {notice}
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,11 +29,8 @@ export default function LoginPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    setSuccessNotice(passwordChangedNoticeFromSearch(window.location.search));
-
     let active = true;
 
     void requestJson<SessionResponse>("/api/auth/session")
@@ -71,11 +81,9 @@ export default function LoginPage() {
           <p className="muted">Access your video review courses and imports.</p>
         </div>
 
-        {successNotice ? (
-          <p className="alert success-alert" role="status">
-            {successNotice}
-          </p>
-        ) : null}
+        <Suspense fallback={null}>
+          <PasswordChangedNotice />
+        </Suspense>
 
         <form className="stack" onSubmit={handleSubmit}>
           <label className="field">
