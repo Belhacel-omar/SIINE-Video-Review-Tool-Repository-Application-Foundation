@@ -14,6 +14,13 @@ import {
   type CourseDetail,
   type CourseVideo,
 } from "@/lib/frontend/task01";
+import {
+  ReviewedExportError,
+  canStartReviewedExport,
+  fetchReviewedExport,
+  reviewedExportErrorMessage,
+  triggerReviewedExportDownload,
+} from "@/lib/frontend/reviewed-export";
 
 async function fetchCourseBundle(courseId: string) {
   return Promise.all([
@@ -36,6 +43,8 @@ export default function CoursePage() {
   const [fileError, setFileError] = useState("");
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -156,6 +165,27 @@ export default function CoursePage() {
     }
   }
 
+  async function downloadReviewedXlsx() {
+    if (!canStartReviewedExport(imported, exporting)) return;
+
+    setExporting(true);
+    setExportError("");
+
+    try {
+      const result = await fetchReviewedExport(courseId);
+      triggerReviewedExportDownload(result.blob, result.filename);
+    } catch (caught) {
+      if (caught instanceof ReviewedExportError && caught.status === 401) {
+        router.replace("/login");
+        return;
+      }
+
+      setExportError(reviewedExportErrorMessage(caught));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="page-shell">
@@ -216,8 +246,20 @@ export default function CoursePage() {
               {reviewedCount > 0 ? "Continue Review" : "Start Review"}
             </Link>
           ) : null}
+          {imported ? (
+            <button
+              className="button secondary"
+              type="button"
+              disabled={exporting}
+              onClick={() => void downloadReviewedXlsx()}
+            >
+              {exporting ? "Preparing XLSX..." : "Download Reviewed XLSX"}
+            </button>
+          ) : null}
         </div>
       </div>
+
+      {exportError ? <p className="alert error" role="alert">{exportError}</p> : null}
 
       {!imported ? (
         <section className="panel">
