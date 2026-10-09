@@ -80,6 +80,7 @@ export async function fetchReviewedExport(
 ): Promise<ReviewedExportResult> {
   const response = await fetcher(reviewedExportPath(courseId), {
     method: "GET",
+    credentials: "same-origin",
     cache: "no-store",
   });
 
