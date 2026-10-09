@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -43,6 +44,9 @@ export default function AppHeader({ email }: { email: string }) {
         </div>
         <div className="header-actions">
           <span className="user-email">{email}</span>
+          <Link className="button secondary" href="/account/password">
+            Change password
+          </Link>
           <button className="button secondary" type="button" onClick={logout} disabled={loggingOut}>
             {loggingOut ? "Signing out..." : "Logout"}
           </button>
