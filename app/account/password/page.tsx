@@ -75,7 +75,7 @@ export default function ChangePasswordPage() {
         </div>
       </div>
 
-      <section className="panel">
+      <section className="auth-card">
         <form className="stack" onSubmit={handleSubmit} noValidate>
           <label className="field" htmlFor="current-password">
             <span>Current password</span>
@@ -92,7 +92,7 @@ export default function ChangePasswordPage() {
             />
           </label>
           {fieldErrors.currentPassword ? (
-            <p className="field-error" id="current-password-error" role="alert">
+            <p className="alert error" id="current-password-error" role="alert">
               {fieldErrors.currentPassword}
             </p>
           ) : null}
@@ -115,7 +115,7 @@ export default function ChangePasswordPage() {
             Use 12–256 characters with at least one letter and one number.
           </p>
           {fieldErrors.newPassword ? (
-            <p className="field-error" id="new-password-error" role="alert">
+            <p className="alert error" id="new-password-error" role="alert">
               {fieldErrors.newPassword}
             </p>
           ) : null}
@@ -135,7 +135,7 @@ export default function ChangePasswordPage() {
             />
           </label>
           {fieldErrors.confirmPassword ? (
-            <p className="field-error" id="confirm-password-error" role="alert">
+            <p className="alert error" id="confirm-password-error" role="alert">
               {fieldErrors.confirmPassword}
             </p>
           ) : null}
