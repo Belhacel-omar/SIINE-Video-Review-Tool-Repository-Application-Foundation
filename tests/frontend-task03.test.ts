@@ -77,6 +77,7 @@ describe("Frontend Task 03 reviewed XLSX download helpers", () => {
 
     expect(fetcher).toHaveBeenCalledWith("/api/courses/course-123/export", {
       method: "GET",
+      credentials: "same-origin",
       cache: "no-store",
     });
     expect(result.filename).toBe("Math-reviewed.xlsx");
