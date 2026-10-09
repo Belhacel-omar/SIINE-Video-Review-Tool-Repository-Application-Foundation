@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { passwordChangedNoticeFromSearch } from "@/lib/frontend/change-password";
 import {
   friendlyError,
   requestJson,
@@ -15,8 +16,11 @@ export default function LoginPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   useEffect(() => {
+    setSuccessNotice(passwordChangedNoticeFromSearch(window.location.search));
+
     let active = true;
 
     void requestJson<SessionResponse>("/api/auth/session")
@@ -66,6 +70,12 @@ export default function LoginPage() {
           <h1>Sign in</h1>
           <p className="muted">Access your video review courses and imports.</p>
         </div>
+
+        {successNotice ? (
+          <p className="alert success-alert" role="status">
+            {successNotice}
+          </p>
+        ) : null}
 
         <form className="stack" onSubmit={handleSubmit}>
           <label className="field">
