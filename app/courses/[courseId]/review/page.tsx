@@ -12,6 +12,15 @@ import {
   type VideoReview,
 } from "@/lib/frontend/task01";
 import {
+  failedPlaybackSource,
+  loadedPlaybackSource,
+  loadingPlaybackSource,
+  playbackErrorMessage,
+  playbackSessionPath,
+  type PlaybackSessionResponse,
+  type PlaybackSourceState,
+} from "@/lib/frontend/playback-session";
+import {
   MAX_REVIEW_NOTE_CHARS,
   applyPersistedReview,
   createPlaybackVisit,
@@ -32,6 +41,13 @@ type SavedReview = VideoReview & {
   videoId: string;
 };
 
+const EMPTY_PLAYBACK_SOURCE: PlaybackSourceState = {
+  videoId: null,
+  streamUrl: null,
+  loading: false,
+  error: null,
+};
+
 async function fetchReviewWorkspace(courseId: string) {
   return Promise.all([
     requestJson<{ course: CourseDetail }>("/api/courses/" + courseId),
@@ -50,13 +66,16 @@ export default function ReviewWorkspacePage() {
   const [note, setNote] = useState("");
   const [lastPersistedNote, setLastPersistedNote] = useState("");
   const [playback, setPlayback] = useState(() => createPlaybackVisit(null));
+  const [playbackSource, setPlaybackSource] = useState<PlaybackSourceState>(
+    EMPTY_PLAYBACK_SOURCE,
+  );
+  const [playbackRequestKey, setPlaybackRequestKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveStatus, setSaveStatus] = useState("");
-  const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -75,6 +94,11 @@ export default function ReviewWorkspacePage() {
         setNote(initialNote);
         setLastPersistedNote(initialNote);
         setPlayback(createPlaybackVisit(initialVideoId));
+        setPlaybackSource(
+          initialVideoId
+            ? loadingPlaybackSource(initialVideoId)
+            : EMPTY_PLAYBACK_SOURCE,
+        );
         setLoadError("");
         setNotFound(false);
       })
@@ -101,6 +125,52 @@ export default function ReviewWorkspacePage() {
       active = false;
     };
   }, [courseId, router]);
+
+  useEffect(() => {
+    if (!selectedVideoId) return;
+
+    const requestedVideoId = selectedVideoId;
+    const controller = new AbortController();
+
+    void requestJson<PlaybackSessionResponse>(
+      playbackSessionPath(requestedVideoId),
+      { signal: controller.signal },
+    )
+      .then((session) => {
+        if (controller.signal.aborted) return;
+
+        setPlaybackSource((current) => {
+          if (current.videoId !== requestedVideoId) return current;
+          return (
+            loadedPlaybackSource(
+              current.videoId,
+              requestedVideoId,
+              session.streamUrl,
+            ) ?? current
+          );
+        });
+      })
+      .catch((caught) => {
+        if (controller.signal.aborted) return;
+
+        if (isUnauthorized(caught)) {
+          router.replace("/login");
+          return;
+        }
+
+        const status = caught instanceof ApiRequestError ? caught.status : null;
+        const message = playbackErrorMessage(status);
+
+        setPlaybackSource((current) => {
+          if (current.videoId !== requestedVideoId) return current;
+          return failedPlaybackSource(requestedVideoId, message);
+        });
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedVideoId, playbackRequestKey, router]);
 
   const currentVideo = useMemo(
     () => findVideo(videos, selectedVideoId),
@@ -142,7 +212,7 @@ export default function ReviewWorkspacePage() {
     setNote(targetNote);
     setLastPersistedNote(targetNote);
     setPlayback(createPlaybackVisit(target.id));
-    setVideoError(false);
+    setPlaybackSource(loadingPlaybackSource(target.id));
     setSaveError("");
     setSaveStatus("");
   }
@@ -158,6 +228,28 @@ export default function ReviewWorkspacePage() {
     }
 
     selectVideo(targetVideoId);
+  }
+
+  function retryPlayback() {
+    if (!currentVideo) return;
+
+    setPlaybackSource(loadingPlaybackSource(currentVideo.id));
+    setPlaybackRequestKey((current) => current + 1);
+  }
+
+  function handleVideoError() {
+    if (!currentVideo) return;
+
+    setPlayback((current) =>
+      playbackVisitReducer(current, { type: "error" }),
+    );
+    setPlaybackSource((current) => {
+      if (current.videoId !== currentVideo.id) return current;
+      return failedPlaybackSource(
+        currentVideo.id,
+        "This video could not be loaded.",
+      );
+    });
   }
 
   function leaveWorkspace() {
@@ -227,7 +319,7 @@ export default function ReviewWorkspacePage() {
             setNote(targetNote);
             setLastPersistedNote(targetNote);
             setPlayback(createPlaybackVisit(target.id));
-            setVideoError(false);
+            setPlaybackSource(loadingPlaybackSource(target.id));
             setSaveStatus("Saved. Moved to the next video.");
           }
         } else {
@@ -319,6 +411,12 @@ export default function ReviewWorkspacePage() {
   }
 
   const reviewed = isPersistedReviewed(currentVideo.review);
+  const currentPlaybackReady =
+    playbackSource.videoId === currentVideo.id && playbackSource.streamUrl;
+  const currentPlaybackLoading =
+    playbackSource.videoId === currentVideo.id && playbackSource.loading;
+  const currentPlaybackError =
+    playbackSource.videoId === currentVideo.id ? playbackSource.error : null;
 
   return (
     <main className="page-shell review-page-shell">
@@ -359,43 +457,55 @@ export default function ReviewWorkspacePage() {
             </div>
 
             <div className="video-frame">
-              {/* Captions are not part of the existing backend/video contract for Task 02. */}
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video
-                key={currentVideo.id}
-                className="review-video"
-                controls
-                playsInline
-                preload="metadata"
-                src={currentVideo.bunnyUrl}
-                aria-label={"Video: " + currentVideo.title}
-                onPlay={() => {
-                  setPlayback((current) =>
-                    playbackVisitReducer(current, { type: "play" }),
-                  );
-                }}
-                onLoadedMetadata={() => {
-                  setPlayback((current) =>
-                    playbackVisitReducer(current, { type: "loadedmetadata" }),
-                  );
-                }}
-                onPause={() => {
-                  setPlayback((current) =>
-                    playbackVisitReducer(current, { type: "pause" }),
-                  );
-                }}
-                onError={() => {
-                  setPlayback((current) =>
-                    playbackVisitReducer(current, { type: "error" }),
-                  );
-                  setVideoError(true);
-                }}
-              />
+              {currentPlaybackLoading ? (
+                <div className="video-frame-state" role="status" aria-live="polite">
+                  <div className="spinner" aria-hidden="true" />
+                  <strong>Preparing secure playback...</strong>
+                  <span>Requesting a fresh video session.</span>
+                </div>
+              ) : currentPlaybackReady ? (
+                <>
+                  {/* Captions are not part of the existing backend/video contract for Task 02. */}
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video
+                    key={currentVideo.id + ":" + currentPlaybackReady}
+                    className="review-video"
+                    controls
+                    playsInline
+                    preload="metadata"
+                    src={currentPlaybackReady}
+                    aria-label={"Video: " + currentVideo.title}
+                    onPlay={() => {
+                      setPlayback((current) =>
+                        playbackVisitReducer(current, { type: "play" }),
+                      );
+                    }}
+                    onLoadedMetadata={() => {
+                      setPlayback((current) =>
+                        playbackVisitReducer(current, { type: "loadedmetadata" }),
+                      );
+                    }}
+                    onPause={() => {
+                      setPlayback((current) =>
+                        playbackVisitReducer(current, { type: "pause" }),
+                      );
+                    }}
+                    onError={handleVideoError}
+                  />
+                </>
+              ) : (
+                <div className="video-frame-state error-state" role="alert">
+                  <strong>{currentPlaybackError || "Playback could not be loaded."}</strong>
+                  <button className="button secondary" type="button" onClick={retryPlayback}>
+                    Retry video
+                  </button>
+                </div>
+              )}
             </div>
 
-            {videoError ? (
+            {currentPlaybackError ? (
               <p className="alert error" role="alert">
-                This video could not be loaded. You can still save a note, but it will remain Not reviewed unless playback actually starts.
+                {currentPlaybackError} Your current note is preserved. Playback must actually start before a save can mark this video Reviewed.
               </p>
             ) : playback.started ? (
               <p className="playback-status" role="status">
